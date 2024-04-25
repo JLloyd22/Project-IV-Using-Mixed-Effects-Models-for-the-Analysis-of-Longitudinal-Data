@@ -1,0 +1,142 @@
+## Chapter 2 Code
+
+## Figure 2.1 Code
+
+library(ggplot2)
+library(gridExtra)
+DietA = ChickWeight[1:220,]
+DietB = ChickWeight[221:340,]
+DietC = ChickWeight[341:460,]
+DietD = ChickWeight[461:578,]
+
+par(mfrow=c(2,2))
+p1 =ggplot(data=DietA, aes(x=Time, y=weight, col=Chick))+
+  geom_line(size=1.2, alpha=0.8)+
+  labs(title='Diet A', x = 'Time (Days)', y = 'Weight (g)')+
+  theme(legend.position='none', plot.title=element_text(size=15, hjust=0.5), 
+  axis.title = element_text(size=15), axis.text = element_text(size=15))
+p2 =ggplot(data=DietB, aes(x=Time, y=weight, col=Chick))+
+  geom_line(size=1.2, alpha=0.8)+
+  labs(title='Diet B', x = 'Time (Days)', y = 'Weight (g)')+
+  theme(legend.position='none',plot.title=element_text(size=15, hjust=0.5),
+  axis.title = element_text(size=15), axis.text = element_text(size=15))
+p3=ggplot(data=DietC, aes(x=Time, y=weight, col=Chick))+
+  geom_line(size=1.2, alpha=0.8)+
+  labs(title='Diet C', x = 'Time (Days)', y = 'Weight (g)')+
+  theme(legend.position='none',plot.title=element_text(size=15, hjust=0.5),
+  axis.title = element_text(size=15), axis.text = element_text(size=15))
+p4=ggplot(data=DietD, aes(x=Time, y=weight, col=Chick))+
+  geom_line(size=1.2, alpha=0.8)+
+  labs(title='Diet D', x = 'Time (Days)', y = 'Weight (g)')+
+  theme(legend.position='none',plot.title=element_text(size=15, hjust=0.5),
+  axis.title = element_text(size=15), axis.text = element_text(size=15))
+#Call this comment to plot results
+gridExtra::grid.arrange(p1,p2,p3,p4)  
+
+# Table 2.2 Code
+
+CW= ChickWeight[-c(166:182, 195:196, 85:95, 497:506),]
+###here we omit all chicks who dropped out
+finalweight = CW[as.vector(which(CW$Time==21)),]
+
+##calculating mean final weights
+for(i in 1:4){
+    print(mean(finalweight[as.vector(which(finalweight$Diet==i)),1]))
+} 
+
+# Calculating maximum weights
+for (i in 1:4){
+    print(max(finalweight[as.vector(which(finalweight$Diet==i)),1]))
+}
+
+# Calculuating minimum weights
+for (i in 1:4){
+    print(min(finalweight[as.vector(which(finalweight$Diet==i)),1]) )
+}
+
+# Calculating mean change between occasions (for all chicks)
+
+r = matrix(NA, nrow=50, ncol=2)
+for (i in 1:50){
+  t = ChickWeight[as.vector(which(ChickWeight$Chick==i)),]
+  diet = (t$Diet)[1]
+  j=1
+  n = length(t[,1])
+  x = rep(0, n-1)
+  if (n==12){
+    while (j<n){
+      x[j] = t[j+1,1] - t[j,1]
+      j = j+1
+    }
+    s = x[11]
+    x[11] = 2*s
+    r[i,1]=mean(x)
+    r[i,2]=diet
+  }
+  else{
+    while(j<n){
+      x[j] = t[j+1,1]-t[j,1]
+      j=j+1
+    }
+    r[i,1]=mean(x)
+    r[i,2]=diet
+  }
+}
+
+
+
+# Here we have multiplied our last step if we have full growth by 2 since we measure
+# day 20 and 21 so half the distance than the rest of them. 
+
+mean(r[1:20,1]) 
+mean(r[21:30,1]) 
+mean(r[31:40,1]) 
+mean(r[41:50,1]) 
+
+## Figure 2.2 Code
+
+require(ggplot2)
+Theophyllin = read.csv('Theophyllin.csv')
+Theophyllin = Theophyllin[1:120,]
+Theo = Theophyllin
+Theo$ID = as.factor(Theo$ID)
+names(Theo) = c('id', 'time', 'concentration', 'weight')
+
+plot = ggplot(data=Theo, aes(x=time, y=concentration, col=id))+
+  geom_line(size=1.2, alpha=0.8)+
+  geom_point(size=1)+
+  labs(x='Time (Hours)', y='Concentration (mg/L)', col='ID')+
+  theme(axis.title = element_text(size=25), axis.text = element_text(size=25), 
+  legend.key.height = unit(1.4, 'cm'), legend.title=element_text(size=25), 
+  legend.text = element_text(size=15))
+
+## Table 2.2 Code
+
+Theophyllin = read.csv('Theophyllin.csv')
+Theophyllin = Theophyllin[1:120,]
+Theo = Theophyllin
+Theo$ID = as.factor(Theo$ID)
+
+names(Theo) = c('id', 'time', 'concentration', 'weight')
+serum = matrix(NA, nrow=1, ncol=12)
+for (i in 1:12){
+  Theosplit = Theo[which(Theo$id==i),]
+  serum[i] = max(Theosplit[,3])
+}
+min(serum)
+max(serum)
+
+timev = matrix(NA, nrow=1, ncol=12)
+for (i in 1:12){
+  Theosplit = Theo[which(Theo$id==i),]
+  mw = max(Theosplit[,3])
+  timev[i] = Theosplit[which(Theosplit[,3]==mw),2]
+}
+mean(timev)
+
+difr = matrix(NA, nrow=1, ncol=12)
+for(i in 1:12){
+  Theosplit = Theo[which(Theo$id==i),]
+  difr[i] = Theosplit[1,3] - Theosplit[10,3]  
+}
+difr
