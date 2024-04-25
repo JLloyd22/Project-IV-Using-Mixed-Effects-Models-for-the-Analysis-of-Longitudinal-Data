@@ -1,0 +1,112 @@
+######### Chapter 5 Code
+
+######### Figure 5.1 Code ##########
+
+library(ggplot2)
+
+Theophyllin = read.csv('Theophyllin.csv')
+Theophyllin = Theophyllin[1:120,]
+Theo = Theophyllin
+Theo$ID = as.factor(Theo$ID)
+names(Theo) = c('id', 'time', 'concentration', 'weight')
+
+f1 = function(psi, t){
+  D  = 320; ka = psi[1]; V  = psi[2]; ke = psi[3]
+  f  = D*ka/V/(ka-ke)*(exp(-ke*t)-exp(-ka*t)) 
+  return(f)
+} 
+
+dplot = data.frame(time=seq(0,40,by=0.2))
+model_all = nls(concentration ~ f1(psi, time), start=list(psi=c(ka=1, V=40, ke=0.1)), data=Theo)
+dplot$predall = predict(model_all, newdata=dplot)
+
+subjectallplot = ggplot(data=Theo, aes(x=time, y=concentration, col=id))+
+  geom_point(size=2, alpha=0.8)+
+  labs(x='Time (hours)', y='Concentration (mg/L)', color='ID')+
+  theme(axis.title=element_text(size=25), axis.text = element_text(size=20), 
+  legend.key.height = unit(1.3,'cm'), legend.text = element_text(size=20),
+  legend.title= element_text(size=20))
+
+# Print the plot in Figure 5.1
+subjectallplot + geom_line(data=dplot, aes(x=time, y=predall), col='green',linewidth=1.5)
+
+
+##### Figure 5.2 Code ##########
+
+plottt = function(i){
+  dum = subset(Theo, id==i)
+  model = nls(concentration~f1(psi, time), start=list(psi=c(ka=1, V=40, ke=0.1)), data=dum)
+  dplot$pred = predict(model, newdata=dplot)
+  gg = ggplot(data=dum, aes(x=time, y=concentration)) + 
+    geom_point(size=1.5, alpha=0.8)+labs(x = 'Time (hours)', y='Concentration (mg/L)', 
+    title=paste('Individual',i))+
+    theme(plot.title = element_text(size=15))
+  print(gg + geom_line(data=dplot, aes(x=time, y=pred), col='green', linewidth=1))
+}
+
+# Plot Figure 5.2
+
+plots = lapply(unique(Theo$id), plottt)
+gridExtra::grid.arrange(grobs = plots, ncol=3)
+
+
+######### Table 5.1 Code ###########
+
+install.packages('saemix')
+library(tidyverse)
+library(saemix)
+saemix_theo = saemixData(name.data = Theo,
+                         name.group = 'id', 
+                         name.predictors = 'time',
+                         name.response = 'concentration')
+
+
+model1_nlme = function(psi,id,x) {
+  D   = 320
+  t   = x[,1]
+  ka  = psi[id,1]
+  V   = psi[id,2]
+  ke  = psi[id,3]
+  fpred = D*ka/(V*(ka-ke))*(exp(-ke*t)-exp(-ka*t))
+  return(fpred)
+}
+
+
+saemix_model = saemixModel(model=model1_nlme,
+                           psi0 = c(ka=1, V=20, ke=0.5))
+      
+
+saemix_options = list(map=TRUE, fim=TRUE, ll.is=FALSE, displayProgress=TRUE, save=FALSE,
+seed=123123)                     
+saemix_fit1 = saemix(saemix_model, saemix_theo, saemix_options)
+saemix_fit1@results
+
+
+####### Figure 5.3 Code ###############
+
+psi = psi(saemix_fit1)
+psi
+saemix_fit = saemix.predict(saemix_fit1)
+saemix_fit
+saemix.plot.fits(saemix_fit1, xlab='Time (hours)', ylab='Concentration (mg / L)', 
+cex.lab=1.4, cex.main=1.6)
+
+######### Table 5.2 Code ###########
+
+mean(unique(Theo$weight))
+
+Theo$w695 = Theo$weight - 69.5
+theo_data1 = saemixData(name.data = Theo,
+                        name.group = c('id'), 
+                        name.predictors = c('time'), 
+                        name.response = c('concentration'),
+                        name.covariates=c('w695'))
+
+saemix_modelw = saemixModel(model = model1_nlme, 
+                            psi0 = c(ka=1, V=20, ke=0.5),
+                            transform.par = c(1,0,1), 
+                            covariate.model = c(0,1,0))
+saemix_fitw = saemix(saemix_modelw, theo_data1, saemix_options)
+saemix_fitw@results
+
+
