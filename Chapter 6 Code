@@ -1,0 +1,221 @@
+######################### Chapter 6 Code ###############################
+
+########### Figure 6.1 Code ##########
+
+x = seq(0,1,0.05)
+
+## After trying the data we saw that it was sufficient just to go up to taking a maximum 
+# of 60% of data out of ChickWeight
+## STEP 1 - Make an 1x13 empty matrix to put our RSS values in 
+rss = matrix(NA, nrow=1, ncol=13)
+
+## STEP 2 - We randomly choose a percentage of the response values to set equal to NA
+## We then fit a Linear Mixed Effects Random Slope model to the data using lmer. 
+## We then obtained the RSS of each model and input that value into our empty 'rss' matrix
+for (i in 1:13){
+  mis = round(runif((578*x[i]), min=0, max=578))
+  ChickWeightNA = ChickWeight
+  ChickWeightNA[mis,1] = NA
+  chick.lmm = lmer(weight ~ Time +(1|Chick), data=ChickWeightNA)
+  chick.lmm.pred = predict(chick.lmm, ChickWeight)
+  rss[i] = sum((chick.lmm.pred - ChickWeight[,1])^2)
+}
+
+##Then checked our RSS
+rss
+# Call this command to check how your RSS changes with different amounts 
+# of missing data
+# plot(x[1:13], rss)
+# Note - Step 1 and Step 2 may need to be repeated multiple times before a full set 
+# of RSS values is obtained. This is due to some chicks having very 
+# few response values before dropping out. As we take more data, the chance of all response 
+# values of a chick being set to NA increases. R then cannot 
+# fit a model to the dataset. 
+
+## Once a full set of RSS values is obtained, save this as rssperf
+rssperf = rss
+
+## Multiplying x by 100 to give us percentage values
+xperc = 100*x
+
+## Only taking up to 60% of data so only need x values 1:13
+xperc = xperc[1:13]
+
+## Making xperc a matrix so we can created a combined dataframe which ggplot can understand
+xperc = as.matrix(xperc, nrow=1)
+
+## Creating a combined dataframe of percentages and rss values
+plotdf = as.data.frame(cbind(xperc, t(rssperf)))
+
+## Changing the names of the columns so we can refer to them in ggplot
+names(plotdf) = c('Percentage', 'RSS')
+
+## Plotting Percentage vs RSS value. See an overall positive trend. 
+ggplot(plotdf, aes(x=Percentage, y=RSS, xlab='Percentage of Missing Data'),
+ylab='Residual Sum of Squares')+
+  geom_point(col='red',size=2.5)+ 
+  geom_smooth(method='lm', se=FALSE)+
+  labs(x='Percentage of Missing Data', y='Residual Sum of Squares')+
+  theme(axis.title = element_text(size=25), axis.text = element_text(size=20))
+
+
+########### Table 6.2 Code ##########
+
+
+DietA = ChickWeight[1:220,]
+DietB = ChickWeight[221:340,]
+DietC = ChickWeight[341:460,]
+DietD = ChickWeight[461:578,]
+
+#Here we do mean imputation
+
+mean(DietA[as.vector(which(DietA$Time==4)),1])  # 56.47368
+mean(DietA[as.vector(which(DietA$Time==6)),1])  # 66.78947
+mean(DietA[as.vector(which(DietA$Time==8)),1]) # 79.68421
+mean(DietA[as.vector(which(DietA$Time==10)),1]) # 93.05263
+mean(DietA[as.vector(which(DietA$Time==12)),1]) # 108.5263
+mean(DietA[as.vector(which(DietA$Time==14)),1]) # 123.3889
+mean(DietA[as.vector(which(DietA$Time==16)),1]) # 144.6471
+mean(DietA[as.vector(which(DietA$Time==18)),1]) # 158.9412
+mean(DietA[as.vector(which(DietA$Time==20)),1]) # 170.4118
+mean(DietA[as.vector(which(DietA$Time==21)),1]) # 177.75
+
+mean(DietD[as.vector(which(DietD$Time==20)),1]) # 233.8889
+mean(DietD[as.vector(which(DietD$Time==21)),1]) # 238.5556
+
+
+
+########### Figure 6.2 Code ###########
+
+# Making a dataframe containing only the chicks which dropped out
+drop = ChickWeight[c(as.vector(which(ChickWeight$Chick==8)),
+as.vector(which(ChickWeight$Chick==15)),
+as.vector(which(ChickWeight$Chick==16)),
+as.vector(which(ChickWeight$Chick==18)),
+as.vector(which(ChickWeight$Chick==44))),]
+
+# Call plot to plot the incomplete data (Figure 6.2a)
+
+plot = ggplot(data=drop, aes(x=Time, y=weight, col=Chick))+
+  geom_line(size=1.2, alpha=0.8)+
+  labs(x = 'Time (Days)', y='Weight (g)', col='Chick')+
+  theme(axis.text = element_text(size=20), axis.title = element_text(size=25), 
+  legend.key.height = unit(3, 'cm'), legend.title=element_text(size=15))
+
+# Making a dataframe containing all imputed values
+
+t = data.frame(weight=c(178, 159, 170, 178, 123, 145, 159, 170, 178, 56, 67, 80, 93
+, 109, 123, 145, 158, 170, 178, 234, 239),
+Time=c(21, 18, 20, 21, 14, 16, 18, 20, 21, 4, 6, 8, 10,12, 14, 16, 18, 20,21, 20, 21),
+Chick=c(8, 15, 15, 15, 16, 16, 16, 16, 16, 18, 18, 18, 18, 18, 18, 18,18, 18, 18, 44, 44),
+Diet=c(1, 1, 1, 1, 1 ,1, 1,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4))
+
+Chickweightt = ChickWeight
+complete = rbind(Chickweightt, t)
+
+drop = complete[c(as.vector(which(complete$Chick==8)),
+as.vector(which(complete$Chick==15)),
+as.vector(which(complete$Chick==16)),as.vector(which(complete$Chick==18)),
+as.vector(which(complete$Chick==44))),]
+
+#Call plot to plot the imputed data (Figure 6.2b)
+
+plot = ggplot(data=drop, aes(x=Time, y=weight, col=Chick))+
+  geom_line(size=1.2, alpha=0.8)+
+  labs(x = 'Time (Days)', y='Weight (g)', col='Chick')+
+  theme(axis.text = element_text(size=20), axis.title = element_text(size=25), 
+  legend.key.height = unit(3, 'cm'), legend.title=element_text(size=15))
+
+############### Figure 6.3 Code #############
+
+library(mice)
+library(ggplot2)
+Chickfull = read.csv('Chickfull.csv')
+Chickfull = Chickfull[,-1]
+names(Chickfull) = c('weight', 'Time', 'Chick', 'Diet')
+Chickfull$Chick = as.factor(Chickfull$Chick)
+Chickfull$Diet = as.factor(Chickfull$Diet)
+
+Chickdrop = Chickfull[c(which(Chickfull$Chick==8),which(Chickfull$Chick==15),
+which(Chickfull$Chick==16),which(Chickfull$Chick==18),which(Chickfull$Chick==44)),]
+
+compchick  =complete(mice(Chickfull, m=20))
+# we tried specifying method='2l.lmer' however this did not give good imputed values
+
+comppp = compchick[c(which(compchick$Chick==8),which(compchick$Chick==15),
+which(compchick$Chick==16),which(compchick$Chick==18),which(compchick$Chick==44)),]
+
+# Call plot1 and plot2 to plot the data
+
+plot1 = ggplot(data=comppp, aes(x=Time, y=weight, col=Chick))+
+  geom_line(size=1.2, alpha=0.8)+
+  labs(x = 'Time (Days)', y='Weight (g)', col='Chick')+
+  theme(axis.text = element_text(size=20), axis.title = element_text(size=25), 
+  legend.key.height = unit(3, 'cm'), legend.title=element_text(size=15))
+plot2 = ggplot(data=Chickdrop, aes(x=Time, y=weight, col=Chick))+
+  geom_line(size=1.2, alpha=0.8)+
+  labs(x = 'Time (Days)', y='Weight (g)', col='Chick')+
+  theme(axis.text = element_text(size=20), axis.title = element_text(size=25), 
+  legend.key.height = unit(3, 'cm'), legend.title=element_text(size=15))
+
+
+############### MICE Algorithm Practise Code ###################
+
+## going to make a step by step guide for the MICE algorithm using dummy data. 
+
+
+dummy = matrix(c(12,16,20,30,45,60,80,75,65,70,60,40,85,65,70,65,50,35), ncol=3)
+dummy = as.data.frame(dummy)
+names(dummy) = c('Age', 'Hearing', 'Sight')
+dummy[4,1] = NA
+dummy[3,2] = NA
+dummy[1,3] = NA
+dummy
+
+
+round(runif(1, min=1, max=5))
+
+#iteration 1
+
+dummy1 = dummy
+dummy1[4,1] = 16
+dummy1[3,2] = 60
+dummy1[1,3] = 50
+dummy1[4,1]=NA
+dummy1
+
+
+lm(Age ~ Hearing+Sight, data=dummy1[-4,])
+##120.1094 - 0.9331H - 0.569S
+dummy1[4,1] = 17.8074
+lm(Hearing~Age+Sight, data=dummy1[-3,])
+## 89.9292 - 0.7446A -0.0467S
+dummy1[3,2] = 71.7682
+lm(Sight ~ Age+ Hearing, data=dummy1[-1,])
+## 41.1973 - 0.3987A + 0.4493H
+
+dummy1[1,3] = 72.3569
+dummy1
+#iteration 2
+
+lm(Age~ Hearing + Sight, data=dummy2[-4,])
+## Age = 112.9239 - 0.673H - 0.6644S
+lm(Hearing ~ Age + Sight, data=dummy2[-3,])
+## Hearing = -44.1922 + 0.4111A + 1.7029S
+lm(Sight ~ Age + Hearing, data=dummy2[-1,])
+## Sight = 45.6905 - 0.4363A + 0.3980H
+
+dummy3 = dummy2
+
+#iteration 3
+dummy3[4,1] = 22.6276
+dummy3[3,2] = 83.6738
+dummy3[1,3] = 72.2949
+
+
+lm(Age~ Hearing + Sight, data=dummy3[-4,])
+## 105.0181 + 0.9411H -2.3634S
+lm(Hearing ~ Age + Sight, data=dummy3[-3,])
+## 12.1174 - 0.0658A + 0.9560S
+lm(Sight ~ Age + Hearing, data=dummy3[-1,])
+## 36.0270 -0.3359A + 0.4863H
